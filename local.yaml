@@ -1,0 +1,7 @@
+---
+  - name: init_skript
+    hosts: localhost
+    become: yes
+    tasks:
+      - name: install fish
+        pacman: name=fish
