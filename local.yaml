@@ -2,6 +2,9 @@
   - name: init_skript
     hosts: localhost
     become: true
+    pre_tasks:
+      - name: update cache
+        pacman: name="-Suy"
     tasks:
       - name: install fish
         pacman: name=fish
