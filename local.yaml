@@ -4,7 +4,8 @@
     become: true
     pre_tasks:
       - name: update cache
-        pacman: name="-Suy"
+        pacman:
+          update_cache: true
     tasks:
       - name: install fish
         pacman: name=fish
