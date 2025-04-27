@@ -5,6 +5,3 @@
     tasks:
       - name: install fish
         pacman: name=fish
-      - name: change shell
-        shell: chsh -s /usr/bin/fish root
-        shell: name=fish
