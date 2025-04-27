@@ -6,4 +6,4 @@
       - name: install fish
         pacman: name=fish
       - name: change shell
-        shell: chsh -s 'which fish'
+        shell: chsh -s /usr/bin/fish
