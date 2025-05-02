@@ -7,5 +7,6 @@
         pacman:
           update_cache: true
     tasks:
-      - name: install fish
-        pacman: name=fish
+      - user:
+        name: rasul
+        password: "{{ 'myvaultpassword' | password_hash('sha512', 'mypermsalt') }}"
