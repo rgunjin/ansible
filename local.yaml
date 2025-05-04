@@ -1,12 +1,19 @@
 ---
   - name: init_skript
-    hosts: localhost
+    hosts: all
     become: true
+    vars_files:
+      - users.yaml
     pre_tasks:
       - name: update cache
         pacman:
           update_cache: true
     tasks:
-      - user:
-        name: rasul
-        password: "{{ 'myvaultpassword' | password_hash('sha512', 'mypermsalt') }}"
+      - name: ensure users exist
+        user:
+          name: "{{ item.name }}"
+          password: "{{ item.password }}"
+          shell: /bin/bash
+          create_home: true
+        loop: "{{ users }}" 
+        no_log: true
