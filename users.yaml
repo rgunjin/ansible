@@ -1,0 +1,5 @@
+users:
+  - name: rasul
+    password: "{{ 'Joydivision_77' | password_hash('sha512') }}"
+  - name: lisa
+    password:  "{{ 'lisa' | password_hash('sha512') }}"
