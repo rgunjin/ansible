@@ -16,4 +16,4 @@
           shell: /bin/bash
           create_home: true
         loop: "{{ users }}" 
-        no_log: true
+        #no_log: true
