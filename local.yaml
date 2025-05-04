@@ -1,6 +1,6 @@
 ---
   - name: init_skript
-    hosts: all
+    hosts: localhost
     become: true
     vars_files:
       - users.yaml
