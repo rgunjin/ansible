@@ -9,11 +9,13 @@
         pacman:
           update_cache: true
     tasks:
+      - name: install fish
+        pacman: name=fish
       - name: ensure users exist
         user:
           name: "{{ item.name }}"
           password: "{{ item.password }}"
-          shell: /bin/bash
+          shell: /bin/fish
           create_home: true
         loop: "{{ users }}" 
         no_log: true
