@@ -31,7 +31,7 @@
 
       - name: Show detected GPU (debug)
         debug:
-          msg: "{{ vga_output.stdouut }}"
+          msg: "{{ vga_output.stdout }}"
 
       - name: Install Intel GPU driver
         pacman:
