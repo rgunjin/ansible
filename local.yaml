@@ -1,19 +1,41 @@
 ---
-  - name: init_skript
+  - name: Init_skript
     hosts: localhost
     become: true
     gather_facts: false
 
     vars_files:
       - users.yaml
+
     pre_tasks:
+      - name: Install reflector
+        pacman:
+          name: reflector
+          state: present
+
+      - name: Optimize pacman mirror list
+        command: >
+          reflector --country Germany --age 12 --protocol https --sort rate
+          --save /etc/pacman.d/mirrorlist
+
       - name: Update cache
         pacman:
           update_cache: true
+
     tasks:
-      - name: Install fish
+      - name: Install base utilities
         pacman:
-          name: fish
+          name:
+            - fish
+            - sudo
+            - wget
+            - curl
+            - man-db
+            - man-pages
+            - unzip
+            - less
+            - which
+            - pacman-contrib
           state: present
 
       - name: Ensure users exist
@@ -26,6 +48,13 @@
           create_home: true
         loop: "{{ users }}" 
         no_log: true
+
+      - name: Allow wheel group to use sudo
+        lineinfile:
+          path: /etc/sudoers
+          regexp: '^# %wheel ALL=\(ALL:ALL\) ALL'
+          line: '%wheel ALL=(ALL:ALL) ALL'
+          validate: 'visudo -cf %s'
 
       - name: Detect VGA controllers
         shell: lspci | grep -i 'vga'
@@ -64,5 +93,3 @@
             - libva-mesa-driver
             - libvdpau
           state: present
-
-      
