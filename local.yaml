@@ -21,6 +21,8 @@
           name: "{{ item.name }}"
           password: "{{ item.password }}"
           shell: /bin/fish
+          groups: "{{ item.groups | default([]) }}"
+          append: true
           create_home: true
         loop: "{{ users }}" 
         no_log: true
