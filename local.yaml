@@ -2,16 +2,21 @@
   - name: init_skript
     hosts: localhost
     become: true
+    gather_facts: false
+
     vars_files:
       - users.yaml
     pre_tasks:
-      - name: update cache
+      - name: Update cache
         pacman:
           update_cache: true
     tasks:
-      - name: install fish
-        pacman: name=fish
-      - name: ensure users exist
+      - name: Install fish
+        pacman:
+          name: fish
+          state: present
+
+      - name: Ensure users exist
         user:
           name: "{{ item.name }}"
           password: "{{ item.password }}"
@@ -19,3 +24,43 @@
           create_home: true
         loop: "{{ users }}" 
         no_log: true
+
+      - name: Detect VGA controllers
+        shell: lspci | grep -i 'vga'
+        register: vga_output
+
+      - name: Show detected GPU (debug)
+        debug:
+          msg: "{{ vga_output.stdouut }}"
+
+      - name: Install Intel GPU driver
+        pacman:
+          name: xf86-video-intel
+          state: present
+        when: '"Intel" in vga_output.stdout'
+
+      - name: Install AMD GPU driver
+        pacman:
+        name: xf86-video-amdgpu
+        state: present
+        when: '"Radeon" in vga_output.stdout or "AMD" in vga_output.stdout'
+
+      - name: Install NVIDIA GPU driver
+        pacman:
+        name:
+          - nvidia
+          - nvidia-utils
+        state: present
+        when: '"NVIDIA" in vga_output.stdout'
+
+      - name: Install Mesa and Vulkan drivers
+        pacman:
+        name:
+          - mesa
+          - vulkan-intel
+          - vulkan-radeon
+          - libva-mesa-driver
+          - libvdpau
+        state: present
+
+      
