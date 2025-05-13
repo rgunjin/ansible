@@ -41,26 +41,26 @@
 
       - name: Install AMD GPU driver
         pacman:
-        name: xf86-video-amdgpu
-        state: present
+          name: xf86-video-amdgpu
+          state: present
         when: '"Radeon" in vga_output.stdout or "AMD" in vga_output.stdout'
 
       - name: Install NVIDIA GPU driver
         pacman:
-        name:
-          - nvidia
-          - nvidia-utils
-        state: present
+          name:
+            - nvidia
+            - nvidia-utils
+          state: present
         when: '"NVIDIA" in vga_output.stdout'
 
       - name: Install Mesa and Vulkan drivers
         pacman:
-        name:
-          - mesa
-          - vulkan-intel
-          - vulkan-radeon
-          - libva-mesa-driver
-          - libvdpau
-        state: present
+          name:
+            - mesa
+            - vulkan-intel
+            - vulkan-radeon
+            - libva-mesa-driver
+            - libvdpau
+          state: present
 
       
