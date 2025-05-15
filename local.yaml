@@ -93,3 +93,31 @@
             - libva-mesa-driver
             - libvdpau
           state: present
+
+      - name: Install XDG tools and Wayland portals
+        pacman:
+          name:
+            - xdg-user-dirs
+            - xdg-desktop-portal
+            - xdg-desktop-portal-wlr
+          state: present
+
+      - name: Update XDG user directories
+        command: xdg-user-dirs-update
+
+      - name: Install Wayland utilities (clipboard, background, screenshot)
+        pacman:
+          name:
+            - wl-clipboard
+            - swaybg
+            - grim
+            - slurp
+          state: present
+
+      - name: Install Sway, Waybar and Starship
+        pacman:
+          name:
+            - sway
+            - waybar
+            - starship
+          state: present
