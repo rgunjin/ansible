@@ -27,6 +27,7 @@
         pacman:
           name:
             - fish
+            - foot
             - sudo
             - wget
             - curl
@@ -102,6 +103,14 @@
         args:
           creates: "{{ lookup('env','HOME') }}/Documents"
 
+      - name: Install Sway, Waybar and Starship
+        pacman:
+          name:
+            - sway
+            - waybar
+            - starship
+          state: present
+
       - name: Install Wayland utilities (clipboard, background, screenshot)
         pacman:
           name:
@@ -109,12 +118,4 @@
             - swaybg
             - grim
             - slurp
-          state: present
-
-      - name: Install Sway, Waybar and Starship
-        pacman:
-          name:
-            - sway
-            - waybar
-            - starship
           state: present
