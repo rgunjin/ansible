@@ -122,3 +122,26 @@
             - grim
             - slurp
           state: present
+
+      - name: Install stow
+        pacman:
+          name: stow
+          state: present
+
+      - name: Clone dotfiles repo for each user
+        become_user: "{{ item.name }}"
+        git:
+          repo: https://github.com/rgunjin/dotfiles.git
+          dest: /home/{{ item.name }}/dotfiles
+          version: main
+          update: yes
+        loop: "{{ users }}"
+
+      - name: Deploy dotfiles via stow
+        become_user: "{{ item.name }}"
+        shell: |
+          cd ~/.dotfiles
+          stow -R */
+        args:
+          chdir: "/home/{{ item.name }}/dotfiles"
+        loop: "{{ users }}"
