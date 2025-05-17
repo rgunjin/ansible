@@ -150,11 +150,9 @@
         become_user: "{{ item.name }}"
         git:
           repo: https://github.com/wbthomason/packer.nvim
-          dest: "/home/{{ item.name }}/.local/share/nvim/site/pack/packer/start/packer.nvim"
-          depth: 1
+          dest: ~/.local/share/nvim/site/pack/packer/start/packer.nvim
+          version: stable
           update: no
-        args:
-          creates: "/home/{{ item.name }}/.local/share/nvim/site/pack/packer/start/packer.nvim"
         loop: "{{ users }}"
 
       - name: Sync Neovim plugins with packer
