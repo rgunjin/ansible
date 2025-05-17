@@ -50,6 +50,21 @@
         loop: "{{ users }}" 
         no_log: true
 
+      - name: Install XDG tools and Wayland portals
+        pacman:
+          name:
+            - xdg-user-dirs
+            - xdg-desktop-portal
+            - xdg-desktop-portal-wlr
+          state: present
+
+      - name: Update XDG user directories
+        become_user: "{{ item.name }}"
+        command: xdg-user-dirs-update
+        args:
+          creates: "/home/{{ item.name }}/Documents"
+        loop: "{{ users }}"
+
       - name: Allow wheel group to use sudo
         lineinfile:
           path: /etc/sudoers
@@ -90,18 +105,6 @@
           state: present
         when: '"NVIDIA" in vga_output.stdout'
 
-      - name: Install XDG tools and Wayland portals
-        pacman:
-          name:
-            - xdg-user-dirs
-            - xdg-desktop-portal
-            - xdg-desktop-portal-wlr
-          state: present
-
-      - name: Update XDG user directories
-        command: xdg-user-dirs-update
-        args:
-          creates: "{{ lookup('env','HOME') }}/Documents"
 
       - name: Install Sway, Waybar and Starship
         pacman:
