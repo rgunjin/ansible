@@ -99,6 +99,8 @@
 
       - name: Update XDG user directories
         command: xdg-user-dirs-update
+        args:
+          creates: "{{ ansible_env.HOME }}/Documents"
 
       - name: Install Wayland utilities (clipboard, background, screenshot)
         pacman:
