@@ -145,3 +145,20 @@
         args:
           chdir: "/home/{{ item.name }}/dotfiles"
         loop: "{{ users }}"
+
+      - name: Bootstrap packer.nvim (if missing)
+        become_user: "{{ item.name }}"
+        git:
+          repo: https://github.com/wbthomason/packer.nvim
+          dest: "/home/{{ item.name }}/.local/share/nvim/site/pack/packer/start/packer.nvim"
+          depth: 1
+          update: no
+        args:
+          creates: "/home/{{ item.name }}/.local/share/nvim/site/pack/packer/start/packer.nvim"
+        loop: "{{ users }}"
+
+      - name: Sync Neovim plugins with packer
+        become_user: "{{ item.name }}"
+        shell: |
+          nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync'
+        loop: "{{ users }}"
