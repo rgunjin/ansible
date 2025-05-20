@@ -105,7 +105,6 @@
           state: present
         when: '"NVIDIA" in vga_output.stdout'
 
-
       - name: Install Sway, Waybar and Starship
         pacman:
           name:
@@ -146,18 +145,19 @@
           chdir: "/home/{{ item.name }}/dotfiles"
         loop: "{{ users }}"
 
-      - name: Bootstrap packer.nvim (if missing)
+      - name: Bootstrap lazy.nvim for each user
         become_user: "{{ item.name }}"
         git:
-          repo: https://github.com/wbthomason/packer.nvim
-          dest: ~/.local/share/nvim/site/pack/packer/start/packer.nvim
-          version: master
-          update: no
+          repo: https://github.com/folke/lazy.nvim.git
+          dest: "/home/{{ item.name }}/.local/share/nvim/site/pack/lazy/start/lazy.nvim"
+          version: stable
+          update: yes
         loop: "{{ users }}"
 
-      - name: Sync Neovim plugins with packer
+      - name: Install Neovim plugins with lazy.nvim
         become_user: "{{ item.name }}"
-        shell: |
-          nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync'
+        shell: nvim --headless "+Lazy! sync" +qa
+        environment:
+          XDG_CONFIG_HOME: "/home/{{ item.name }}/.config"
         loop: "{{ users }}"
 
