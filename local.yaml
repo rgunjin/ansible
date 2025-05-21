@@ -37,6 +37,9 @@
             - less
             - which
             - pacman-contrib
+            - tmux
+            - fzf
+            - tealdeer
           state: present
 
       - name: Ensure users exist
