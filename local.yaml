@@ -183,3 +183,10 @@
         dest: "{{ ansible_user_dir }}/.local/bin/tmux-cht.sh"
         state: link
         force: yes
+
+      - name: Symlink tmux-note to ~/.local/bin
+        file:
+        src: "{{ ansible_user_dir }}/dotfiles/tmux/.config/tmux-note"
+        dest: "{{ ansible_user_dir }}/.local/bin/tmux-note"
+        state: link
+        force: yes
