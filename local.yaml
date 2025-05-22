@@ -40,7 +40,6 @@
             - tmux
             - fzf
             - tealdeer
-            - wl-clipboard
           state: present
 
       - name: Ensure users exist
@@ -165,3 +164,22 @@
           XDG_CONFIG_HOME: "/home/{{ item.name }}/.config"
         loop: "{{ users }}"
 
+      - name: Ensure ~/.local/bin exists
+        file:
+        path: "{{ ansible_user_dir }}/.local/bin"
+        state: directory
+        mode: '0755'
+
+      - name: Symlink tmux-sessionizer to ~/.local/bin
+        file:
+        src: "{{ ansible_user_dir }}/dotfiles/tmux/.config/tmux/tmux-sessionizer"
+        dest: "{{ ansible_user_dir }}/.local/bin/tmux-sessionizer"
+        state: link
+        force: yes
+
+      - name: Symlink tmux-cht.sh to ~/.local/bin
+        file:
+        src: "{{ ansible_user_dir }}/dotfiles/tmux/.config/tmux-cht.sh"
+        dest: "{{ ansible_user_dir }}/.local/bin/tmux-cht.sh"
+        state: link
+        force: yes
