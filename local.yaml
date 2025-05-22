@@ -40,6 +40,7 @@
             - tmux
             - fzf
             - tealdeer
+            - wl-clipboard
           state: present
 
       - name: Ensure users exist
