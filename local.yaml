@@ -207,3 +207,14 @@
             - bluez-utils
           state: present
         update_cache: yes
+
+         
+      - name: Enable and start PipeWire user services for each user
+        become: yes
+        become_user: "{{ item.0.name }}"
+        systemd:
+          name: "{{ item.1 }}"
+          scope: user
+          state: started
+          enabled: yes
+        loop: "{{ users | product(['pipewire.service', 'pipewire-pulse.service', 'wireplumber.service']) | list }}"
