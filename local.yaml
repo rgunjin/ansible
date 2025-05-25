@@ -40,6 +40,7 @@
             - tmux
             - fzf
             - tealdeer
+            - gcc
           state: present
 
       - name: Ensure users exist
@@ -166,27 +167,31 @@
 
       - name: Ensure ~/.local/bin exists
         file:
-          path: "{{ ansible_user_dir }}/.local/bin"
+          path: "/home/{{ item.name }}/.local/bin"
           state: directory
           mode: '0755'
+        loop: "{{ users }}"
 
       - name: Symlink tmux-sessionizer to ~/.local/bin
         file:
-          src: "{{ ansible_user_dir }}/dotfiles/tmux/.config/tmux/tmux-sessionizer"
-          dest: "{{ ansible_user_dir }}/.local/bin/tmux-sessionizer"
+          src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux/tmux-sessionizer"
+          dest: "/home/{{ item.name }}/.local/bin/tmux-sessionizer"
           state: link
           force: yes
+        loop: "{{ users }}"
 
       - name: Symlink tmux-cht.sh to ~/.local/bin
         file:
-          src: "{{ ansible_user_dir }}/dotfiles/tmux/.config/tmux-cht.sh"
-          dest: "{{ ansible_user_dir }}/.local/bin/tmux-cht.sh"
+          src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux-cht.sh"
+          dest: "/home/{{ item.name }}/.local/bin/tmux-cht.sh"
           state: link
           force: yes
+        loop: "{{ users }}"
 
       - name: Symlink tmux-note to ~/.local/bin
         file:
-          src: "{{ ansible_user_dir }}/dotfiles/tmux/.config/tmux-note"
-          dest: "{{ ansible_user_dir }}/.local/bin/tmux-note"
+          src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux-note"
+          dest: "/home/{{ item.name }}/.local/bin/tmux-note"
           state: link
           force: yes
+        loop: "{{ users }}"
