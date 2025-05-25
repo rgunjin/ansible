@@ -166,27 +166,27 @@
 
       - name: Ensure ~/.local/bin exists
         file:
-        path: "{{ ansible_user_dir }}/.local/bin"
-        state: directory
-        mode: '0755'
+          path: "{{ ansible_user_dir }}/.local/bin"
+          state: directory
+          mode: '0755'
 
       - name: Symlink tmux-sessionizer to ~/.local/bin
         file:
-        src: "{{ ansible_user_dir }}/dotfiles/tmux/.config/tmux/tmux-sessionizer"
-        dest: "{{ ansible_user_dir }}/.local/bin/tmux-sessionizer"
-        state: link
-        force: yes
+          src: "{{ ansible_user_dir }}/dotfiles/tmux/.config/tmux/tmux-sessionizer"
+          dest: "{{ ansible_user_dir }}/.local/bin/tmux-sessionizer"
+          state: link
+          force: yes
 
       - name: Symlink tmux-cht.sh to ~/.local/bin
         file:
-        src: "{{ ansible_user_dir }}/dotfiles/tmux/.config/tmux-cht.sh"
-        dest: "{{ ansible_user_dir }}/.local/bin/tmux-cht.sh"
-        state: link
-        force: yes
+          src: "{{ ansible_user_dir }}/dotfiles/tmux/.config/tmux-cht.sh"
+          dest: "{{ ansible_user_dir }}/.local/bin/tmux-cht.sh"
+          state: link
+          force: yes
 
       - name: Symlink tmux-note to ~/.local/bin
         file:
-        src: "{{ ansible_user_dir }}/dotfiles/tmux/.config/tmux-note"
-        dest: "{{ ansible_user_dir }}/.local/bin/tmux-note"
-        state: link
-        force: yes
+          src: "{{ ansible_user_dir }}/dotfiles/tmux/.config/tmux-note"
+          dest: "{{ ansible_user_dir }}/.local/bin/tmux-note"
+          state: link
+          force: yes
