@@ -195,3 +195,15 @@
           state: link
           force: yes
         loop: "{{ users }}"
+
+      - name: Install PipeWire and related packages
+        pacman:
+          name:
+            - pipewire
+            - pipewire-alsa
+            - pipewire-pulse
+            - wireplumber
+            - bluez
+            - bluez-utils
+          state: present
+        update_cache: yes
