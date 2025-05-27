@@ -43,6 +43,15 @@
             - gcc
           state: present
 
+      - name: Install Fonts
+        pacman:
+          - nerd-fonts
+          - cantarell-fonts
+          - ttf-fonts-awesome
+          - noto-fonts
+          - noto-fonts-emoji
+        state: present
+
       - name: Ensure users exist
         user:
           name: "{{ item.name }}"
@@ -55,12 +64,14 @@
         no_log: true
 
       - name: Install XDG tools and Wayland portals
+        become_user: "{{ item.name }}"
         pacman:
           name:
             - xdg-user-dirs
             - xdg-desktop-portal
             - xdg-desktop-portal-wlr
           state: present
+        loop: "{{ users }}"
 
       - name: Update XDG user directories
         become_user: "{{ item.name }}"
