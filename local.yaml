@@ -41,6 +41,7 @@
             - fzf
             - tealdeer
             - gcc
+            - jq
           state: present
 
       - name: Install Fonts
