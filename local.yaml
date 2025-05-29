@@ -129,6 +129,7 @@
             - starship
             - jq
             - brightnessctl
+            - lm_sensors
           state: present
 
       - name: Install Wayland utilities (clipboard, background, screenshot)
