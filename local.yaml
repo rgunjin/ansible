@@ -89,12 +89,12 @@
           validate: 'visudo -cf %s'
 
       - name: Detect VGA controllers
-        shell: lspci | grep -i 'vga'
-        register: vga_output
+        shell: lspci | grep -Ei 'vga|3d'
+        register: gpu_output
 
       - name: Show detected GPU (debug)
         debug:
-          msg: "{{ vga_output.stdout }}"
+          msg: "{{ gpu_output.stdout }}"
 
       - name: Install Intel GPU driver
         pacman:
@@ -103,7 +103,7 @@
             - mesa
             - vulkan-intel
           state: present
-        when: '"Intel" in vga_output.stdout'
+        when: '"Intel" in gpu_output.stdout'
 
       - name: Install AMD GPU driver
         pacman:
@@ -111,15 +111,15 @@
             - xf86-video-amdgpu
             - vulkan-radeon
           state: present
-        when: '"Radeon" in vga_output.stdout or "AMD" in vga_output.stdout'
+        when: '"Radeon" in gpu_output.stdout or "AMD" in gpu_output.stdout'
 
       - name: Install NVIDIA GPU driver
         pacman:
           name:
-            - nvidia
+            - nvidia-dkms
             - nvidia-utils
           state: present
-        when: '"NVIDIA" in vga_output.stdout'
+        when: '"NVIDIA" in gpu_output.stdout'
 
       - name: Install Sway, Waybar and Starship
         pacman:
