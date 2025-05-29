@@ -42,7 +42,6 @@
             - fzf
             - tealdeer
             - gcc
-            - jq
           state: present
 
       - name: Install Fonts
@@ -128,6 +127,8 @@
             - sway
             - waybar
             - starship
+            - jq
+            - brightnessctl
           state: present
 
       - name: Install Wayland utilities (clipboard, background, screenshot)
