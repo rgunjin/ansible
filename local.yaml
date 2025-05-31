@@ -139,6 +139,8 @@
             - swaybg
             - grim
             - slurp
+            - swayidle
+            - swaylock
           state: present
 
       - name: Install stow
