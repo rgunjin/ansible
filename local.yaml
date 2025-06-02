@@ -1,51 +1,62 @@
 ---
-  - name: Init_skript
-    hosts: localhost
-    become: true
-    gather_facts: false
+- name: Init_skript
+  hosts: localhost
+  become: true
+  become_method: doas
+  gather_facts: false
 
-    vars_files:
-      - users.yaml
+  vars_files:
+    - users.yaml
 
-    pre_tasks:
-      - name: Install reflector
-        pacman:
-          name: reflector
-          state: present
+  pre_tasks:
+    - name: Install reflector
+      pacman:
+        name: reflector
+        state: present
 
-      - name: Optimize pacman mirror list
-        command: >
-          reflector --country Germany --age 12 --protocol https --sort rate
-          --save /etc/pacman.d/mirrorlist
+    - name: Optimize pacman mirror list
+      command: >
+        reflector --country Germany --age 12 --protocol https --sort rate
+        --save /etc/pacman.d/mirrorlist
 
-      - name: Update cache
-        pacman:
-          update_cache: true
+    - name: Update cache
+      pacman:
+        update_cache: true
 
-    tasks:
-      - name: Install base utilities
-        pacman:
-          name:
-            - fish
-            - foot
-            - sudo
-            - wget
-            - curl
-            - man-db
-            - man-pages
-            - unzip
-            - less
-            - which
-            - pacman-contrib
-            - fakeroot
-            - tmux
-            - fzf
-            - tealdeer
-            - gcc
-          state: present
+  tasks:
+    - name: Install base utilities
+      pacman:
+        name:
+          - fish
+          - foot
+          - wget
+          - curl
+          - man-db
+          - man-pages
+          - unzip
+          - less
+          - which
+          - pacman-contrib
+          - fakeroot
+          - tmux
+          - fzf
+          - tealdeer
+          - gcc
+          - doas
+        state: present
 
-      - name: Install Fonts
-        pacman:
+    - name: Configure doas for wheel group
+      copy:
+        dest: /etc/doas.conf
+        content: |
+          permit persist :wheel
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Install Fonts
+      pacman:
+        name:
           - nerd-fonts
           - cantarell-fonts
           - ttf-fonts-awesome
@@ -53,185 +64,176 @@
           - noto-fonts-emoji
         state: present
 
-      - name: Ensure users exist
-        user:
-          name: "{{ item.name }}"
-          password: "{{ item.password }}"
-          shell: /bin/fish
-          groups: "{{ item.groups | default([]) }}"
-          append: true
-          create_home: true
-        loop: "{{ users }}" 
-        no_log: true
+    - name: Ensure users exist
+      user:
+        name: "{{ item.name }}"
+        password: "{{ item.password }}"
+        shell: /bin/fish
+        groups: "{{ item.groups | default([]) }}"
+        append: true
+        create_home: true
+      loop: "{{ users }}"
+      no_log: true
 
-      - name: Install XDG tools and Wayland portals
-        become_user: "{{ item.name }}"
-        pacman:
-          name:
-            - xdg-user-dirs
-            - xdg-desktop-portal
-            - xdg-desktop-portal-wlr
-          state: present
-        loop: "{{ users }}"
+    - name: Install XDG tools and Wayland portals
+      become_user: "{{ item.name }}"
+      pacman:
+        name:
+          - xdg-user-dirs
+          - xdg-desktop-portal
+          - xdg-desktop-portal-wlr
+        state: present
+      loop: "{{ users }}"
 
-      - name: Update XDG user directories
-        become_user: "{{ item.name }}"
-        command: xdg-user-dirs-update
-        args:
-          creates: "/home/{{ item.name }}/Documents"
-        loop: "{{ users }}"
+    - name: Update XDG user directories
+      become_user: "{{ item.name }}"
+      command: xdg-user-dirs-update
+      args:
+        creates: "/home/{{ item.name }}/Documents"
+      loop: "{{ users }}"
 
-      - name: Allow wheel group to use sudo
-        lineinfile:
-          path: /etc/sudoers
-          regexp: '^# %wheel ALL=\(ALL:ALL\) ALL'
-          line: '%wheel ALL=(ALL:ALL) ALL'
-          validate: 'visudo -cf %s'
+    - name: Detect VGA controllers
+      shell: lspci | grep -Ei 'vga|3d'
+      register: gpu_output
 
-      - name: Detect VGA controllers
-        shell: lspci | grep -Ei 'vga|3d'
-        register: gpu_output
+    - name: Show detected GPU (debug)
+      debug:
+        msg: "{{ gpu_output.stdout }}"
 
-      - name: Show detected GPU (debug)
-        debug:
-          msg: "{{ gpu_output.stdout }}"
+    - name: Install Intel GPU driver
+      pacman:
+        name:
+          - xf86-video-intel
+          - mesa
+          - vulkan-intel
+        state: present
+      when: '"Intel" in gpu_output.stdout'
 
-      - name: Install Intel GPU driver
-        pacman:
-          name:
-            - xf86-video-intel
-            - mesa
-            - vulkan-intel
-          state: present
-        when: '"Intel" in gpu_output.stdout'
+    - name: Install AMD GPU driver
+      pacman:
+        name:
+          - xf86-video-amdgpu
+          - vulkan-radeon
+        state: present
+      when: '"Radeon" in gpu_output.stdout or "AMD" in gpu_output.stdout'
 
-      - name: Install AMD GPU driver
-        pacman:
-          name:
-            - xf86-video-amdgpu
-            - vulkan-radeon
-          state: present
-        when: '"Radeon" in gpu_output.stdout or "AMD" in gpu_output.stdout'
+    - name: Install NVIDIA GPU driver
+      pacman:
+        name:
+          - nvidia-dkms
+          - nvidia-utils
+        state: present
+      when: '"NVIDIA" in gpu_output.stdout'
 
-      - name: Install NVIDIA GPU driver
-        pacman:
-          name:
-            - nvidia-dkms
-            - nvidia-utils
-          state: present
-        when: '"NVIDIA" in gpu_output.stdout'
+    - name: Install Sway, Waybar and Starship
+      pacman:
+        name:
+          - sway
+          - waybar
+          - starship
+          - jq
+          - brightnessctl
+          - lm_sensors
+        state: present
 
-      - name: Install Sway, Waybar and Starship
-        pacman:
-          name:
-            - sway
-            - waybar
-            - starship
-            - jq
-            - brightnessctl
-            - lm_sensors
-          state: present
+    - name: Install Wayland utilities (clipboard, background, screenshot)
+      pacman:
+        name:
+          - wl-clipboard
+          - swaybg
+          - grim
+          - slurp
+          - swayidle
+          - swaylock
+        state: present
 
-      - name: Install Wayland utilities (clipboard, background, screenshot)
-        pacman:
-          name:
-            - wl-clipboard
-            - swaybg
-            - grim
-            - slurp
-            - swayidle
-            - swaylock
-          state: present
+    - name: Install stow
+      pacman:
+        name: stow
+        state: present
 
-      - name: Install stow
-        pacman:
-          name: stow
-          state: present
+    - name: Clone dotfiles repo for each user
+      become_user: "{{ item.name }}"
+      git:
+        repo: https://github.com/rgunjin/dotfiles.git
+        dest: /home/{{ item.name }}/dotfiles
+        version: main
+        update: yes
+      loop: "{{ users }}"
 
-      - name: Clone dotfiles repo for each user
-        become_user: "{{ item.name }}"
-        git:
-          repo: https://github.com/rgunjin/dotfiles.git
-          dest: /home/{{ item.name }}/dotfiles
-          version: main
-          update: yes
-        loop: "{{ users }}"
+    - name: Deploy dotfiles via stow
+      become_user: "{{ item.name }}"
+      shell: |
+        cd ~/.dotfiles
+        stow -R */
+      args:
+        chdir: "/home/{{ item.name }}/dotfiles"
+      loop: "{{ users }}"
 
-      - name: Deploy dotfiles via stow
-        become_user: "{{ item.name }}"
-        shell: |
-          cd ~/.dotfiles
-          stow -R */
-        args:
-          chdir: "/home/{{ item.name }}/dotfiles"
-        loop: "{{ users }}"
+    - name: Bootstrap lazy.nvim for each user
+      become_user: "{{ item.name }}"
+      git:
+        repo: https://github.com/folke/lazy.nvim.git
+        dest: "/home/{{ item.name }}/.local/share/nvim/site/pack/lazy/start/lazy.nvim"
+        version: stable
+        update: yes
+      loop: "{{ users }}"
 
-      - name: Bootstrap lazy.nvim for each user
-        become_user: "{{ item.name }}"
-        git:
-          repo: https://github.com/folke/lazy.nvim.git
-          dest: "/home/{{ item.name }}/.local/share/nvim/site/pack/lazy/start/lazy.nvim"
-          version: stable
-          update: yes
-        loop: "{{ users }}"
+    - name: Install Neovim plugins with lazy.nvim
+      become_user: "{{ item.name }}"
+      shell: nvim --headless "+Lazy! sync" +qa
+      environment:
+        XDG_CONFIG_HOME: "/home/{{ item.name }}/.config"
+      loop: "{{ users }}"
 
-      - name: Install Neovim plugins with lazy.nvim
-        become_user: "{{ item.name }}"
-        shell: nvim --headless "+Lazy! sync" +qa
-        environment:
-          XDG_CONFIG_HOME: "/home/{{ item.name }}/.config"
-        loop: "{{ users }}"
+    - name: Ensure ~/.local/bin exists
+      file:
+        path: "/home/{{ item.name }}/.local/bin"
+        state: directory
+        mode: '0755'
+      loop: "{{ users }}"
 
-      - name: Ensure ~/.local/bin exists
-        file:
-          path: "/home/{{ item.name }}/.local/bin"
-          state: directory
-          mode: '0755'
-        loop: "{{ users }}"
+    - name: Symlink tmux-sessionizer to ~/.local/bin
+      file:
+        src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux/tmux-sessionizer"
+        dest: "/home/{{ item.name }}/.local/bin/tmux-sessionizer"
+        state: link
+        force: yes
+      loop: "{{ users }}"
 
-      - name: Symlink tmux-sessionizer to ~/.local/bin
-        file:
-          src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux/tmux-sessionizer"
-          dest: "/home/{{ item.name }}/.local/bin/tmux-sessionizer"
-          state: link
-          force: yes
-        loop: "{{ users }}"
+    - name: Symlink tmux-cht.sh to ~/.local/bin
+      file:
+        src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux-cht.sh"
+        dest: "/home/{{ item.name }}/.local/bin/tmux-cht.sh"
+        state: link
+        force: yes
+      loop: "{{ users }}"
 
-      - name: Symlink tmux-cht.sh to ~/.local/bin
-        file:
-          src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux-cht.sh"
-          dest: "/home/{{ item.name }}/.local/bin/tmux-cht.sh"
-          state: link
-          force: yes
-        loop: "{{ users }}"
+    - name: Symlink tmux-note to ~/.local/bin
+      file:
+        src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux-note"
+        dest: "/home/{{ item.name }}/.local/bin/tmux-note"
+        state: link
+        force: yes
+      loop: "{{ users }}"
 
-      - name: Symlink tmux-note to ~/.local/bin
-        file:
-          src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux-note"
-          dest: "/home/{{ item.name }}/.local/bin/tmux-note"
-          state: link
-          force: yes
-        loop: "{{ users }}"
+    - name: Install PipeWire and related packages
+      pacman:
+        name:
+          - pipewire
+          - pipewire-alsa
+          - pipewire-pulse
+          - wireplumber
+          - bluez
+          - bluez-utils
+        state: present
+        update_cache: yes
 
-      - name: Install PipeWire and related packages
-        pacman:
-          name:
-            - pipewire
-            - pipewire-alsa
-            - pipewire-pulse
-            - wireplumber
-            - bluez
-            - bluez-utils
-          state: present
-          update_cache: yes
-
-         
-      - name: Enable and start PipeWire user services for each user
-        become: yes
-        become_user: "{{ item.0.name }}"
-        systemd:
-          name: "{{ item.1 }}"
-          scope: user
-          state: started
-          enabled: yes
-        loop: "{{ users | product(['pipewire.service', 'pipewire-pulse.service', 'wireplumber.service']) | list }}"
+    - name: Enable and start PipeWire user services for each user
+      become_user: "{{ item.0.name }}"
+      systemd:
+        name: "{{ item.1 }}"
+        scope: user
+        state: started
+        enabled: yes
+      loop: "{{ users | product(['pipewire.service', 'pipewire-pulse.service', 'wireplumber.service']) | list }}"
