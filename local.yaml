@@ -1,32 +1,29 @@
 ---
 - name: Init_skript
   hosts: localhost
-  become: true
-  become_method: doas
   gather_facts: false
-
   vars_files:
     - users.yaml
 
+
   pre_tasks:
-    - name: Install reflector
-      pacman:
-        name: reflector
-        state: present
+    - name: Init pacman keyring
+      command: "pacman-key --init"
+      args:
+        creates: /etc/pacman.d/gnupg
+    
+    - name: Populate Arch keyring
+      command: "pacman-key --populate archlinux"
 
-    - name: Optimize pacman mirror list
-      command: >
-        reflector --country Germany --age 12 --protocol https --sort rate
-        --save /etc/pacman.d/mirrorlist
+    - name: Refresh all keys from keyserver
+      command: "pacman-key --refresh-keys"
 
-    - name: Update cache
-      pacman:
-        update_cache: true
 
   tasks:
     - name: Install base utilities
       pacman:
         name:
+          - reflector
           - fish
           - foot
           - wget
@@ -44,6 +41,12 @@
           - gcc
           - doas
         state: present
+        update_cache: yes
+
+    - name: Optimize pacman mirror list
+      command: >
+        reflector --country Germany --age 12 --protocol https --sort rate
+        --save /etc/pacman.d/mirrorlist
 
     - name: Configure doas for wheel group
       copy:
@@ -59,7 +62,7 @@
         name:
           - nerd-fonts
           - cantarell-fonts
-          - ttf-fonts-awesome
+          - woff2-font-awesome
           - noto-fonts
           - noto-fonts-emoji
         state: present
@@ -76,18 +79,16 @@
       no_log: true
 
     - name: Install XDG tools and Wayland portals
-      become_user: "{{ item.name }}"
       pacman:
         name:
           - xdg-user-dirs
           - xdg-desktop-portal
           - xdg-desktop-portal-wlr
         state: present
-      loop: "{{ users }}"
 
     - name: Update XDG user directories
-      become_user: "{{ item.name }}"
-      command: xdg-user-dirs-update
+      command: >
+        runuser -l "{{ item.name }}" -c 'xdg-user-dirs-update'
       args:
         creates: "/home/{{ item.name }}/Documents"
       loop: "{{ users }}"
@@ -154,6 +155,9 @@
 
     - name: Clone dotfiles repo for each user
       become_user: "{{ item.name }}"
+      environment:
+        HOME: "/home/{{ item.name }}"
+        XDG_CONFIG_HOME: "/home/{{ item.name }}/.config"
       git:
         repo: https://github.com/rgunjin/dotfiles.git
         dest: /home/{{ item.name }}/dotfiles
@@ -229,11 +233,6 @@
         state: present
         update_cache: yes
 
-    - name: Enable and start PipeWire user services for each user
-      become_user: "{{ item.0.name }}"
-      systemd:
-        name: "{{ item.1 }}"
-        scope: user
-        state: started
-        enabled: yes
-      loop: "{{ users | product(['pipewire.service', 'pipewire-pulse.service', 'wireplumber.service']) | list }}"
+    - name: Enable linger
+      command: loginctl enable-linger "{{ item.name }}"
+      loop: "{{ users }}"
