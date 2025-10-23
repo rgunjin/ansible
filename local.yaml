@@ -49,6 +49,7 @@
           - tealdeer
           - gcc
           - doas
+          - npm
         state: present
         update_cache: yes
 
