@@ -18,12 +18,21 @@
     - name: Refresh all keys from keyserver
       command: "pacman-key --refresh-keys"
 
+    - name: Install reflector
+      pacman:
+        name:
+          - reflector
+        state: present
+
+    - name: Optimize pacman mirror list
+      command: >
+        reflector --country Germany --age 12 --protocol https --sort rate
+        --save /etc/pacman.d/mirrorlist
 
   tasks:
     - name: Install base utilities
       pacman:
         name:
-          - reflector
           - fish
           - foot
           - wget
@@ -43,10 +52,6 @@
         state: present
         update_cache: yes
 
-    - name: Optimize pacman mirror list
-      command: >
-        reflector --country Germany --age 12 --protocol https --sort rate
-        --save /etc/pacman.d/mirrorlist
 
     - name: Configure doas for wheel group
       copy:
