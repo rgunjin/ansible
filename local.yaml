@@ -213,7 +213,7 @@
 
     - name: Symlink tmux-cht.sh to ~/.local/bin
       file:
-        src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux-cht.sh"
+        src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux/tmux-cht.sh"
         dest: "/home/{{ item.name }}/.local/bin/tmux-cht.sh"
         state: link
         force: yes
@@ -221,7 +221,7 @@
 
     - name: Symlink tmux-note to ~/.local/bin
       file:
-        src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux-note"
+        src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux/tmux-note"
         dest: "/home/{{ item.name }}/.local/bin/tmux-note"
         state: link
         force: yes
