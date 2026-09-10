@@ -65,13 +65,15 @@
 
     - name: Install Fonts
       pacman:
-        name:
-          - nerd-fonts
-          - cantarell-fonts
-          - woff2-font-awesome
-          - noto-fonts
-          - noto-fonts-emoji
-        state: present
+      name:
+        - ttf-terminus-nerd
+        - ttf-nerd-fonts-symbols
+        - ttf-nerd-fonts-symbols-mono
+        - cantarell-fonts
+        - woff2-font-awesome
+        - noto-fonts
+        - noto-fonts-emoji
+      state: present
 
     - name: Ensure users exist
       user:
