@@ -65,15 +65,15 @@
 
     - name: Install Fonts
       pacman:
-      name:
-        - ttf-terminus-nerd
-        - ttf-nerd-fonts-symbols
-        - ttf-nerd-fonts-symbols-mono
-        - cantarell-fonts
-        - woff2-font-awesome
-        - noto-fonts
-        - noto-fonts-emoji
-      state: present
+        name:
+          - ttf-terminus-nerd
+          - ttf-nerd-fonts-symbols
+          - ttf-nerd-fonts-symbols-mono
+          - cantarell-fonts
+          - woff2-font-awesome
+          - noto-fonts
+          - noto-fonts-emoji
+        state: present
 
     - name: Ensure users exist
       user:
@@ -174,10 +174,9 @@
       loop: "{{ users }}"
 
     - name: Deploy dotfiles via stow
+      become: true
       become_user: "{{ item.name }}"
-      shell: |
-        cd ~/.dotfiles
-        stow -R */
+      shell: stow -R */
       args:
         chdir: "/home/{{ item.name }}/dotfiles"
       loop: "{{ users }}"
