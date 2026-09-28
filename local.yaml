@@ -1,24 +1,21 @@
 ---
-# Запуск (в VM, от своего пользователя, НЕ от root):
+# Запуск (на VM, от root или через sudo):
 #   ansible-playbook local.yaml -K 2>&1 | tee ~/ansible.log
-# Только часть:  --tags base,dotfiles     (gui — sway, звук, шрифты)
-# Другие/несколько пользователей:  -e @vars/users.yaml
+# Только часть:   --tags base,dotfiles,nvim   (gui — sway, звук, шрифты)
+# Список пользователей — в vars/users.yaml (см. пример рядом)
 - name: Dev environment
   hosts: localhost
   connection: local
   gather_facts: false
   become: true
-
-  vars:
-    # По умолчанию настраивается тот, кто запустил плейбук
-    users:
-      - name: "{{ lookup('env', 'SUDO_USER') or lookup('env', 'USER') }}"
+  vars_files:
+    - vars/users.yaml
 
   pre_tasks:
-    - name: Refuse to configure root
+    - name: Refuse to create/configure root via this list
       assert:
         that: users | map(attribute='name') | select('equalto', 'root') | list | length == 0
-        fail_msg: "Запусти плейбук от обычного пользователя (не root), либо передай -e @vars/users.yaml"
+        fail_msg: "В vars/users.yaml не должно быть пользователя root."
       tags: always
 
     - name: Init pacman keyring
@@ -93,15 +90,16 @@
         mode: '0644'
       tags: base
 
-    - name: Ensure users exist and use fish
+    - name: Ensure users exist
       user:
         name: "{{ item.name }}"
-        password: "{{ item.password | default(omit) }}"
+        password: "{{ item.password }}"
         shell: /usr/bin/fish
-        groups: "{{ item.groups | default(omit) }}"
+        groups: "{{ item.groups | default([]) }}"
         append: true
         create_home: true
       loop: "{{ users }}"
+      no_log: true
       tags: base
 
     - name: Install XDG user dirs
