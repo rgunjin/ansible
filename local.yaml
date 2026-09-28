@@ -342,3 +342,19 @@
         creates: "/var/lib/systemd/linger/{{ item.name }}"
       loop: "{{ users }}"
       tags: gui
+
+    - name: Install open-vm-tools (VMware guest integration)
+      pacman:
+        name:
+          - open-vm-tools
+          - gtkmm3
+          - libxtst
+        state: present
+      tags: gui
+
+    - name: Enable vmtoolsd
+      systemd:
+        name: vmtoolsd
+        enabled: true
+        state: started
+      tags: gui
