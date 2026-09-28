@@ -18,16 +18,27 @@
         fail_msg: "В vars/users.yaml не должно быть пользователя root."
       tags: always
 
-    - name: Init pacman keyring
-      command: pacman-key --init
-      args:
-        creates: /etc/pacman.d/gnupg/pubring.gpg
+    - name: Check pacman keyring health
+      command: pacman-key --populate archlinux
+      register: keyring_check
+      changed_when: false
+      failed_when: false
       tags: base
 
-    - name: Populate Arch keyring
-      command: pacman-key --populate archlinux
-      changed_when: false
+    - name: Reinitialize pacman keyring if broken
+      when: keyring_check.rc != 0
       tags: base
+      block:
+        - name: Remove broken keyring
+          file:
+            path: /etc/pacman.d/gnupg
+            state: absent
+
+        - name: Init pacman keyring
+          command: pacman-key --init
+
+        - name: Populate Arch keyring
+          command: pacman-key --populate archlinux
 
     - name: Install reflector
       pacman:
