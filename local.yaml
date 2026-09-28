@@ -125,6 +125,13 @@
       loop: "{{ users | product(['.config', '.local/bin']) | list }}"
       tags: dotfiles
 
+    - name: Mark dotfiles dir as safe for git (per user)
+      become_user: "{{ item.name }}"
+      command: git config --global --add safe.directory "/home/{{ item.name }}/dotfiles"
+      changed_when: false
+      loop: "{{ users }}"
+      tags: dotfiles
+
     - name: Clone dotfiles repo for each user
       become_user: "{{ item.name }}"
       git:
