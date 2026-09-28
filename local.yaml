@@ -1,58 +1,87 @@
 ---
-- name: Init_skript
+# Запуск (в VM, от своего пользователя, НЕ от root):
+#   ansible-playbook local.yaml -K 2>&1 | tee ~/ansible.log
+# Только часть:  --tags base,dotfiles     (gui — sway, звук, шрифты)
+# Другие/несколько пользователей:  -e @vars/users.yaml
+- name: Dev environment
   hosts: localhost
+  connection: local
   gather_facts: false
-  vars_files:
-    - users.yaml
+  become: true
 
+  vars:
+    # По умолчанию настраивается тот, кто запустил плейбук
+    users:
+      - name: "{{ lookup('env', 'SUDO_USER') or lookup('env', 'USER') }}"
 
   pre_tasks:
-    - name: Init pacman keyring
-      command: "pacman-key --init"
-      args:
-        creates: /etc/pacman.d/gnupg
-    
-    - name: Populate Arch keyring
-      command: "pacman-key --populate archlinux"
+    - name: Refuse to configure root
+      assert:
+        that: users | map(attribute='name') | select('equalto', 'root') | list | length == 0
+        fail_msg: "Запусти плейбук от обычного пользователя (не root), либо передай -e @vars/users.yaml"
+      tags: always
 
-    - name: Refresh all keys from keyserver
-      command: "pacman-key --refresh-keys"
+    - name: Init pacman keyring
+      command: pacman-key --init
+      args:
+        creates: /etc/pacman.d/gnupg/pubring.gpg
+      tags: base
+
+    - name: Populate Arch keyring
+      command: pacman-key --populate archlinux
+      changed_when: false
+      tags: base
 
     - name: Install reflector
       pacman:
-        name:
-          - reflector
+        name: reflector
         state: present
+        update_cache: true
+      tags: base
 
     - name: Optimize pacman mirror list
       command: >
         reflector --country Germany --age 12 --protocol https --sort rate
         --save /etc/pacman.d/mirrorlist
+      ignore_errors: true
+      tags: base
 
   tasks:
+    # ---------------------------------------------------------------- base
     - name: Install base utilities
       pacman:
         name:
+          - acl
+          - git
+          - neovim
+          - stow
           - fish
-          - foot
+          - tmux
+          - fzf
+          - ripgrep
+          - fd
+          - starship
+          - jq
+          - tealdeer
           - wget
           - curl
-          - man-db
-          - man-pages
           - unzip
           - less
           - which
+          - man-db
+          - man-pages
           - pacman-contrib
-          - fakeroot
-          - tmux
-          - fzf
-          - tealdeer
-          - gcc
+          - pciutils
+          - openssh
           - doas
+          - gcc
+          - make
+          - fakeroot
           - npm
+          - tree-sitter-cli
         state: present
-        update_cache: yes
-
+        update_cache: true
+      tags: base
 
     - name: Configure doas for wheel group
       copy:
@@ -62,7 +91,92 @@
         owner: root
         group: root
         mode: '0644'
+      tags: base
 
+    - name: Ensure users exist and use fish
+      user:
+        name: "{{ item.name }}"
+        password: "{{ item.password | default(omit) }}"
+        shell: /usr/bin/fish
+        groups: "{{ item.groups | default(omit) }}"
+        append: true
+        create_home: true
+      loop: "{{ users }}"
+      tags: base
+
+    - name: Install XDG user dirs
+      pacman:
+        name: xdg-user-dirs
+        state: present
+      tags: base
+
+    - name: Update XDG user directories
+      command: runuser -l "{{ item.name }}" -c 'xdg-user-dirs-update'
+      args:
+        creates: "/home/{{ item.name }}/Documents"
+      loop: "{{ users }}"
+      tags: base
+
+    # ------------------------------------------------------------ dotfiles
+    - name: Ensure ~/.config and ~/.local/bin exist
+      become_user: "{{ item.0.name }}"
+      file:
+        path: "/home/{{ item.0.name }}/{{ item.1 }}"
+        state: directory
+        mode: '0755'
+      loop: "{{ users | product(['.config', '.local/bin']) | list }}"
+      tags: dotfiles
+
+    - name: Clone dotfiles repo for each user
+      become_user: "{{ item.name }}"
+      git:
+        repo: https://github.com/rgunjin/dotfiles.git
+        dest: "/home/{{ item.name }}/dotfiles"
+        version: main
+        update: true
+      loop: "{{ users }}"
+      tags: dotfiles
+
+    - name: Deploy dotfiles via stow
+      become_user: "{{ item.name }}"
+      shell: stow --no-folding -R */
+      args:
+        chdir: "/home/{{ item.name }}/dotfiles"
+      loop: "{{ users }}"
+      tags: dotfiles
+
+    - name: Symlink tmux scripts to ~/.local/bin
+      become_user: "{{ item.0.name }}"
+      file:
+        src: "/home/{{ item.0.name }}/dotfiles/tmux/.config/tmux/{{ item.1 }}"
+        dest: "/home/{{ item.0.name }}/.local/bin/{{ item.1 }}"
+        state: link
+        force: true
+      loop: "{{ users | product(['tmux-sessionizer', 'tmux-note']) | list }}"
+      tags: dotfiles
+
+    # ---------------------------------------------------------------- nvim
+    - name: Bootstrap lazy.nvim for each user
+      become_user: "{{ item.name }}"
+      git:
+        repo: https://github.com/folke/lazy.nvim.git
+        dest: "/home/{{ item.name }}/.local/share/nvim/site/pack/lazy/start/lazy.nvim"
+        version: stable
+        update: true
+      loop: "{{ users }}"
+      tags: nvim
+
+    - name: Install Neovim plugins with lazy.nvim
+      become_user: "{{ item.name }}"
+      shell: nvim --headless "+Lazy! sync" +qa
+      environment:
+        HOME: "/home/{{ item.name }}"
+        XDG_CONFIG_HOME: "/home/{{ item.name }}/.config"
+      loop: "{{ users }}"
+      ignore_errors: true
+      tags: nvim
+
+    # ----------------------------------------------------------------- gui
     - name: Install Fonts
       pacman:
         name:
@@ -74,49 +188,33 @@
           - noto-fonts
           - noto-fonts-emoji
         state: present
-
-    - name: Ensure users exist
-      user:
-        name: "{{ item.name }}"
-        password: "{{ item.password }}"
-        shell: /bin/fish
-        groups: "{{ item.groups | default([]) }}"
-        append: true
-        create_home: true
-      loop: "{{ users }}"
-      no_log: true
-
-    - name: Install XDG tools and Wayland portals
-      pacman:
-        name:
-          - xdg-user-dirs
-          - xdg-desktop-portal
-          - xdg-desktop-portal-wlr
-        state: present
-
-    - name: Update XDG user directories
-      command: >
-        runuser -l "{{ item.name }}" -c 'xdg-user-dirs-update'
-      args:
-        creates: "/home/{{ item.name }}/Documents"
-      loop: "{{ users }}"
+      tags: gui
 
     - name: Detect VGA controllers
-      shell: lspci | grep -Ei 'vga|3d'
+      shell: lspci | grep -Ei 'vga|3d' || true
       register: gpu_output
+      changed_when: false
+      tags: gui
 
     - name: Show detected GPU (debug)
       debug:
         msg: "{{ gpu_output.stdout }}"
+      tags: gui
+
+    - name: Install generic Mesa (also for VMs)
+      pacman:
+        name: mesa
+        state: present
+      tags: gui
 
     - name: Install Intel GPU driver
       pacman:
         name:
           - xf86-video-intel
-          - mesa
           - vulkan-intel
         state: present
       when: '"Intel" in gpu_output.stdout'
+      tags: gui
 
     - name: Install AMD GPU driver
       pacman:
@@ -125,6 +223,7 @@
           - vulkan-radeon
         state: present
       when: '"Radeon" in gpu_output.stdout or "AMD" in gpu_output.stdout'
+      tags: gui
 
     - name: Install NVIDIA GPU driver
       pacman:
@@ -133,21 +232,18 @@
           - nvidia-utils
         state: present
       when: '"NVIDIA" in gpu_output.stdout'
+      tags: gui
 
-    - name: Install Sway, Waybar and Starship
+    - name: Install Wayland portals, Sway and Waybar
       pacman:
         name:
+          - xdg-desktop-portal
+          - xdg-desktop-portal-wlr
           - sway
           - waybar
-          - starship
-          - jq
+          - foot
           - brightnessctl
           - lm_sensors
-        state: present
-
-    - name: Install Wayland utilities (clipboard, background, screenshot)
-      pacman:
-        name:
           - wl-clipboard
           - swaybg
           - grim
@@ -155,65 +251,7 @@
           - swayidle
           - swaylock
         state: present
-
-    - name: Install stow
-      pacman:
-        name: stow
-        state: present
-
-    - name: Clone dotfiles repo for each user
-      become_user: "{{ item.name }}"
-      environment:
-        HOME: "/home/{{ item.name }}"
-        XDG_CONFIG_HOME: "/home/{{ item.name }}/.config"
-      git:
-        repo: https://github.com/rgunjin/dotfiles.git
-        dest: /home/{{ item.name }}/dotfiles
-        version: main
-        update: yes
-      loop: "{{ users }}"
-
-    - name: Deploy dotfiles via stow
-      become: true
-      become_user: "{{ item.name }}"
-      shell: stow -R */
-      args:
-        chdir: "/home/{{ item.name }}/dotfiles"
-      loop: "{{ users }}"
-
-          - name: Bootstrap lazy.nvim for each user
-      become_user: "{{ item.name }}"
-      git:
-        repo: https://github.com/folke/lazy.nvim.git
-        dest: "/home/{{ item.name }}/.local/share/nvim/site/pack/lazy/start/lazy.nvim"
-        version: stable
-        update: yes
-      loop: "{{ users }}"
-
-    - name: Install Neovim plugins with lazy.nvim
-      become_user: "{{ item.name }}"
-      shell: nvim --headless "+Lazy! sync" +qa
-      environment:
-        HOME: "/home/{{ item.name }}"
-        XDG_CONFIG_HOME: "/home/{{ item.name }}/.config"
-      loop: "{{ users }}"
-
-    - name: Ensure ~/.local/bin exists
-      become_user: "{{ item.name }}"
-      file:
-        path: "/home/{{ item.name }}/.local/bin"
-        state: directory
-        mode: '0755'
-      loop: "{{ users }}"
-
-    - name: Symlink tmux scripts to ~/.local/bin
-      become_user: "{{ item.0.name }}"
-      file:
-        src: "/home/{{ item.0.name }}/dotfiles/tmux/.config/tmux/{{ item.1 }}"
-        dest: "/home/{{ item.0.name }}/.local/bin/{{ item.1 }}"
-        state: link
-        force: yes
-      loop: "{{ users | product(['tmux-sessionizer', 'tmux-note']) | list }}"
+      tags: gui
 
     - name: Install PipeWire and related packages
       pacman:
@@ -225,8 +263,11 @@
           - bluez
           - bluez-utils
         state: present
-        update_cache: yes
+      tags: gui
 
     - name: Enable linger
       command: loginctl enable-linger "{{ item.name }}"
+      args:
+        creates: "/var/lib/systemd/linger/{{ item.name }}"
       loop: "{{ users }}"
+      tags: gui
