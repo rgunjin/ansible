@@ -213,7 +213,7 @@
         dest: "/home/{{ item.0.name }}/.local/bin/{{ item.1 }}"
         state: link
         force: yes
-      loop: "{{ users | product(['tmux-sessionizer', 'tmux-cht.sh', 'tmux-note']) | list }}"
+      loop: "{{ users | product(['tmux-sessionizer', 'tmux-note']) | list }}"
 
     - name: Install PipeWire and related packages
       pacman:
