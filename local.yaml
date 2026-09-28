@@ -61,6 +61,27 @@
     tags: base
 
   tasks:
+    # ------------------------------------------------------------- microcode
+    - name: Detect CPU vendor
+      shell: grep -m1 vendor_id /proc/cpuinfo | awk '{print $3}'
+      register: cpu_vendor
+      changed_when: false
+      tags: base
+
+    - name: Install AMD microcode
+      pacman:
+        name: amd-ucode
+        state: present
+      when: '"AuthenticAMD" in cpu_vendor.stdout'
+      tags: base
+
+    - name: Install Intel microcode
+      pacman:
+        name: intel-ucode
+        state: present
+      when: '"GenuineIntel" in cpu_vendor.stdout'
+      tags: base
+
     # ---------------------------------------------------------------- base
     - name: Install base utilities
       pacman:
