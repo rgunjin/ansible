@@ -181,7 +181,7 @@
         chdir: "/home/{{ item.name }}/dotfiles"
       loop: "{{ users }}"
 
-    - name: Bootstrap lazy.nvim for each user
+          - name: Bootstrap lazy.nvim for each user
       become_user: "{{ item.name }}"
       git:
         repo: https://github.com/folke/lazy.nvim.git
@@ -194,39 +194,26 @@
       become_user: "{{ item.name }}"
       shell: nvim --headless "+Lazy! sync" +qa
       environment:
+        HOME: "/home/{{ item.name }}"
         XDG_CONFIG_HOME: "/home/{{ item.name }}/.config"
       loop: "{{ users }}"
 
     - name: Ensure ~/.local/bin exists
+      become_user: "{{ item.name }}"
       file:
         path: "/home/{{ item.name }}/.local/bin"
         state: directory
         mode: '0755'
       loop: "{{ users }}"
 
-    - name: Symlink tmux-sessionizer to ~/.local/bin
+    - name: Symlink tmux scripts to ~/.local/bin
+      become_user: "{{ item.0.name }}"
       file:
-        src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux/tmux-sessionizer"
-        dest: "/home/{{ item.name }}/.local/bin/tmux-sessionizer"
+        src: "/home/{{ item.0.name }}/dotfiles/tmux/.config/tmux/{{ item.1 }}"
+        dest: "/home/{{ item.0.name }}/.local/bin/{{ item.1 }}"
         state: link
         force: yes
-      loop: "{{ users }}"
-
-    - name: Symlink tmux-cht.sh to ~/.local/bin
-      file:
-        src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux/tmux-cht.sh"
-        dest: "/home/{{ item.name }}/.local/bin/tmux-cht.sh"
-        state: link
-        force: yes
-      loop: "{{ users }}"
-
-    - name: Symlink tmux-note to ~/.local/bin
-      file:
-        src: "/home/{{ item.name }}/dotfiles/tmux/.config/tmux/tmux-note"
-        dest: "/home/{{ item.name }}/.local/bin/tmux-note"
-        state: link
-        force: yes
-      loop: "{{ users }}"
+      loop: "{{ users | product(['tmux-sessionizer', 'tmux-cht.sh', 'tmux-note']) | list }}"
 
     - name: Install PipeWire and related packages
       pacman:
