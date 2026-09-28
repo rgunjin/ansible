@@ -159,9 +159,13 @@
       loop: "{{ users }}"
       tags: dotfiles
 
-    - name: Deploy dotfiles via stow
+    - name: Deploy dotfiles via stow (adopt conflicts, then restore pristine repo content)
       become_user: "{{ item.name }}"
-      shell: stow --no-folding -R */
+      shell: |
+        set -e
+        stow --no-folding --adopt -R */
+        git checkout -- .
+        git clean -fd
       args:
         chdir: "/home/{{ item.name }}/dotfiles"
       loop: "{{ users }}"
