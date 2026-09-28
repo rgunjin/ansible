@@ -11,7 +11,7 @@
   vars_files:
     - vars/users.yaml
 
-  pre_tasks:
+    pre_tasks:
     - name: Refuse to create/configure root via this list
       assert:
         that: users | map(attribute='name') | select('equalto', 'root') | list | length == 0
@@ -33,6 +33,12 @@
           file:
             path: /etc/pacman.d/gnupg
             state: absent
+
+        - name: Pre-create private-keys-v1.d (works around gpg-agent init bug in VMs)
+          file:
+            path: /etc/pacman.d/gnupg/private-keys-v1.d
+            state: directory
+            mode: '0700'
 
         - name: Init pacman keyring
           command: pacman-key --init
