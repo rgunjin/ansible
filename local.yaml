@@ -82,6 +82,30 @@
       when: '"GenuineIntel" in cpu_vendor.stdout'
       tags: base
 
+    - name: Check for systemd-boot loader entry
+      stat:
+        path: /boot/loader/entries/arch.conf
+      register: bootloader_entry
+      tags: base
+
+    - name: Ensure AMD ucode initrd line is present in loader entry
+      lineinfile:
+        path: /boot/loader/entries/arch.conf
+        line: "initrd  /amd-ucode.img"
+        insertbefore: "^initrd\\s+/initramfs-linux\\.img"
+        state: present
+      when: bootloader_entry.stat.exists and '"AuthenticAMD" in cpu_vendor.stdout'
+      tags: base
+
+    - name: Ensure Intel ucode initrd line is present in loader entry
+      lineinfile:
+        path: /boot/loader/entries/arch.conf
+        line: "initrd  /intel-ucode.img"
+        insertbefore: "^initrd\\s+/initramfs-linux\\.img"
+        state: present
+      when: bootloader_entry.stat.exists and '"GenuineIntel" in cpu_vendor.stdout'
+      tags: base
+
     # ---------------------------------------------------------------- base
     - name: Install base utilities
       pacman:
